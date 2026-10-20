@@ -9,6 +9,9 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # Needed only for the one-time self-configuration step that switches the
+  # Pages site from "legacy (branch)" to "GitHub Actions" build type.
+  administration: write
 
 concurrency:
   group: pages
@@ -38,20 +41,26 @@ jobs:
           SIYMON_BASE: /${{ github.event.repository.name }}/
 
       - name: Ensure Pages source is GitHub Actions
-        # One-time self-configuration: project sites created in "legacy" (branch)
-        # mode would serve raw sources instead of the built app. The workflow
-        # token carries `pages: write`, which allows switching the build type.
+        # One-time self-configuration: sites created in "legacy" (branch) mode
+        # would serve raw sources instead of the built app. Best-effort: if the
+        # token lacks administration rights the deploy still runs and the
+        # switch can be done once in Settings → Pages → Source: GitHub Actions.
+        continue-on-error: true
         run: |
           current="$(curl -sf -H "Authorization: Bearer ${{ github.token }}" \
             -H "Accept: application/vnd.github+json" \
             "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages" | jq -r '.build_type // empty')"
           echo "current pages build_type: ${current:-none}"
           if [ "$current" != "workflow" ]; then
-            curl -sf -X PATCH \
+            code=$(curl -s -o /tmp/pages-patch.json -w '%{http_code}' -X PATCH \
               -H "Authorization: Bearer ${{ github.token }}" \
               -H "Accept: application/vnd.github+json" \
               "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages" \
-              -d '{"build_type":"workflow"}' && echo "switched to workflow build type"
+              -d '{"build_type":"workflow"}')
+            echo "PATCH /pages -> HTTP $code"
+            cat /tmp/pages-patch.json || true
+            [ "$code" = "200" ] && echo "✔ switched to workflow build type" \
+              || echo "⚠ could not switch automatically — set Settings → Pages → Source: GitHub Actions once."
           fi
 
       - name: Setup Pages
