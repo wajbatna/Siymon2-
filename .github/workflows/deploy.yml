@@ -37,6 +37,23 @@ jobs:
           # The repository name is injected here, never hardcoded in source.
           SIYMON_BASE: /${{ github.event.repository.name }}/
 
+      - name: Ensure Pages source is GitHub Actions
+        # One-time self-configuration: project sites created in "legacy" (branch)
+        # mode would serve raw sources instead of the built app. The workflow
+        # token carries `pages: write`, which allows switching the build type.
+        run: |
+          current="$(curl -sf -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages" | jq -r '.build_type // empty')"
+          echo "current pages build_type: ${current:-none}"
+          if [ "$current" != "workflow" ]; then
+            curl -sf -X PATCH \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              -H "Accept: application/vnd.github+json" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages" \
+              -d '{"build_type":"workflow"}' && echo "switched to workflow build type"
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
