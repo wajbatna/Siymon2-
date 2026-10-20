@@ -117,6 +117,12 @@ The workflow sets `SIYMON_BASE=/<repository-name>/` so Vite rewrites every asset
 (JS, CSS, favicon) to the project-site base path. Images referenced at runtime are
 resolved through `assetUrl()` (`src/utils/assets.ts`), which respects the same base.
 
+> **Troubleshooting — site shows a 404 or raw files after deploying:** the repository's
+> Pages site may have been created in *legacy (branch)* mode. The workflow attempts a
+> best-effort switch to the Actions source on every run; if the token is refused, do it
+> once manually: **Settings → Pages → Build and deployment → Source → GitHub Actions**,
+> then re-run the workflow (or push again). No other change is needed.
+
 ### Local / custom-domain builds
 
 - Default base is `/` — correct for local dev, `vite preview`, or a custom domain

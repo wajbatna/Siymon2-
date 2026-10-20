@@ -9,9 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  # Needed only for the one-time self-configuration step that switches the
-  # Pages site from "legacy (branch)" to "GitHub Actions" build type.
-  administration: write
 
 concurrency:
   group: pages
@@ -42,9 +39,10 @@ jobs:
 
       - name: Ensure Pages source is GitHub Actions
         # One-time self-configuration: sites created in "legacy" (branch) mode
-        # would serve raw sources instead of the built app. Best-effort: if the
-        # token lacks administration rights the deploy still runs and the
-        # switch can be done once in Settings → Pages → Source: GitHub Actions.
+        # would serve raw sources instead of the built app. Best-effort: the
+        # default workflow token usually lacks administration rights, so if the
+        # PATCH is refused the deploy still runs — switch once manually in
+        # Settings → Pages → Build and deployment → Source: GitHub Actions.
         continue-on-error: true
         run: |
           current="$(curl -sf -H "Authorization: Bearer ${{ github.token }}" \
